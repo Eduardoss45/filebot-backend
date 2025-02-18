@@ -77,3 +77,21 @@ exemplo:
 {
 "folderName": "C:\Users\gilgi\OneDrive\Documentos\testes-filebot-api\3"
 }
+
+# Monitoramento automatico
+
+Para ativar essa função devem ser enviados os seguintes dados:
+
+exemplo:
+{
+"extension": [
+".html",
+".css",
+".js"
+],
+"from": "C:\Users\gilgi\OneDrive\Documentos\testes-filebot-api",
+"to": "C:\Users\gilgi\OneDrive\Documentos\testes-filebot-api\html",
+"ignore": [
+"index.js"
+]
+}

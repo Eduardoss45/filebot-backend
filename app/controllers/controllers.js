@@ -1,4 +1,6 @@
 const fs = require("fs");
+const path = require("path");
+const chokidar = require("chokidar");
 
 // Testado
 exports.criarPasta = (req, res) => {
@@ -70,6 +72,55 @@ exports.criarArquivo = (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Arquivo criado com sucesso!" });
   });
+};
+
+// Testado
+exports.organizacaoAutomatica = (req, res) => {
+  const { extension, from, to, ignore } = req.body;
+  console.log("Dados recebidos:", { extension, from, to, ignore });
+  if (!Array.isArray(extension) || extension.length === 0) {
+    return res
+      .status(400)
+      .send("Extensões inválidas. Deve ser uma lista de formatos.");
+  }
+  if (typeof from !== "string" || from.trim() === "") {
+    return res.status(400).send("Caminho de origem (from) inválido.");
+  }
+  const normalizedExtensions = extension.map((ext) =>
+    ext.startsWith(".") ? ext : `.${ext}`
+  );
+  const watcher = chokidar.watch(from, { persistent: true });
+  watcher.on("add", (arquivo) => {
+    console.log(`Novo arquivo detectado: ${arquivo}`);
+    const fileExtension = path.extname(arquivo);
+    const fileName = path.basename(arquivo);
+    const fileDir = path.dirname(arquivo);
+    console.log(`Extensão do arquivo detectado: ${fileExtension}`);
+    console.log(`Nome do arquivo detectado: ${fileName}`);
+    console.log(`Pasta do arquivo: ${fileDir}`);
+    if (
+      ignore === "all" ||
+      (Array.isArray(ignore) &&
+        ignore.some((item) => fileDir.includes(item) || fileName === item))
+    ) {
+      console.log(`Ignorado: ${arquivo}`);
+      return;
+    }
+    if (normalizedExtensions.includes(fileExtension)) {
+      const caminhoNovo = path.join(to, fileName);
+      fs.rename(arquivo, caminhoNovo, (err) => {
+        if (err) {
+          console.error("Erro ao mover arquivo:", err);
+          return;
+        }
+        console.log(`Arquivo ${fileName} movido de ${from} para ${to}`);
+      });
+    }
+  });
+  watcher.on("error", (err) => {
+    console.error("Erro no monitoramento:", err);
+  });
+  res.status(200).send("Monitoramento iniciado com sucesso.");
 };
 
 // Testado

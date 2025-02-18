@@ -10,6 +10,7 @@ module.exports = () => {
   router.post("/arquivo/renomear", controllers.renomearArquivo); // Testado
   router.post("/arquivo/deletar", controllers.deletarArquivo); // Testado
   router.post("/arquivo/criar", controllers.criarArquivo); // Testado
+  router.post("/automatico", controllers.organizacaoAutomatica); // Testado
   router.get("/", controllers.root); // Testado
   return router;
 };
