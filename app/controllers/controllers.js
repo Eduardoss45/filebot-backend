@@ -1,8 +1,7 @@
 const fs = require("fs");
-const path = require("path");
-const chokidar = require("chokidar");
+const { definirMetodo, monitorarArquivos } = require("../services/services");
 
-// Testado
+// Testado (Não é necessário)
 exports.criarPasta = (req, res) => {
   const { folderName } = req.body;
   fs.mkdir(folderName, { recursive: true }, (err) => {
@@ -11,7 +10,7 @@ exports.criarPasta = (req, res) => {
   });
 };
 
-// Testado
+// Testado (Não é necessário)
 exports.renomearPasta = (req, res) => {
   const { oldName, newName } = req.body;
   fs.rename(oldName, newName, (err) => {
@@ -20,7 +19,7 @@ exports.renomearPasta = (req, res) => {
   });
 };
 
-// Testado
+// Testado (Não é necessário)
 exports.moverPasta = (req, res) => {
   const { from, to } = req.body;
   fs.rename(from, to, (err) => {
@@ -29,7 +28,7 @@ exports.moverPasta = (req, res) => {
   });
 };
 
-// Testado
+// Testado (Não é necessário)
 exports.deletarPasta = (req, res) => {
   const { folderName } = req.body;
   fs.rm(folderName, { recursive: true, force: true }, (err) => {
@@ -38,7 +37,7 @@ exports.deletarPasta = (req, res) => {
   });
 };
 
-// Testado
+// Testado (É necessário)
 exports.moverArquivo = (req, res) => {
   const { from, to } = req.body;
   fs.rename(from, to, (err) => {
@@ -47,7 +46,7 @@ exports.moverArquivo = (req, res) => {
   });
 };
 
-// Testado
+// Testado (É necessário)
 exports.renomearArquivo = (req, res) => {
   const { oldName, newName } = req.body;
   fs.rename(oldName, newName, (err) => {
@@ -56,7 +55,7 @@ exports.renomearArquivo = (req, res) => {
   });
 };
 
-// Testado
+// Testado (É necessário)
 exports.deletarArquivo = (req, res) => {
   const { fileName } = req.body;
   fs.unlink(fileName, (err) => {
@@ -65,7 +64,7 @@ exports.deletarArquivo = (req, res) => {
   });
 };
 
-// Testado
+// Testado (Não é necessário)
 exports.criarArquivo = (req, res) => {
   const { fileNameAndFormat } = req.body;
   fs.writeFile(fileNameAndFormat, "", (err) => {
@@ -74,53 +73,44 @@ exports.criarArquivo = (req, res) => {
   });
 };
 
-// Testado
+// (Monitoramento em Tempo Real)
 exports.organizacaoAutomatica = (req, res) => {
-  const { extension, from, to, ignore } = req.body;
-  console.log("Dados recebidos:", { extension, from, to, ignore });
-  if (!Array.isArray(extension) || extension.length === 0) {
-    return res
-      .status(400)
-      .send("Extensões inválidas. Deve ser uma lista de formatos.");
-  }
-  if (typeof from !== "string" || from.trim() === "") {
-    return res.status(400).send("Caminho de origem (from) inválido.");
-  }
-  const normalizedExtensions = extension.map((ext) =>
-    ext.startsWith(".") ? ext : `.${ext}`
-  );
-  const watcher = chokidar.watch(from, { persistent: true });
-  watcher.on("add", (arquivo) => {
-    console.log(`Novo arquivo detectado: ${arquivo}`);
-    const fileExtension = path.extname(arquivo);
-    const fileName = path.basename(arquivo);
-    const fileDir = path.dirname(arquivo);
-    console.log(`Extensão do arquivo detectado: ${fileExtension}`);
-    console.log(`Nome do arquivo detectado: ${fileName}`);
-    console.log(`Pasta do arquivo: ${fileDir}`);
-    if (
-      ignore === "all" ||
-      (Array.isArray(ignore) &&
-        ignore.some((item) => fileDir.includes(item) || fileName === item))
-    ) {
-      console.log(`Ignorado: ${arquivo}`);
-      return;
-    }
-    if (normalizedExtensions.includes(fileExtension)) {
-      const caminhoNovo = path.join(to, fileName);
-      fs.rename(arquivo, caminhoNovo, (err) => {
-        if (err) {
-          console.error("Erro ao mover arquivo:", err);
-          return;
-        }
-        console.log(`Arquivo ${fileName} movido de ${from} para ${to}`);
-      });
-    }
+  const {
+    extension,
+    from,
+    to,
+    ignore,
+    pattern,
+    creationDate,
+    modificationDate,
+  } = req.body;
+  if (!from || !to) return res.status(400).send("Caminhos inválidos.");
+  if (!fs.existsSync(to)) fs.mkdirSync(to, { recursive: true });
+  const metodoUsado = definirMetodo({
+    extension,
+    creationDate,
+    modificationDate,
+    pattern,
   });
-  watcher.on("error", (err) => {
-    console.error("Erro no monitoramento:", err);
-  });
-  res.status(200).send("Monitoramento iniciado com sucesso.");
+  if (!metodoUsado)
+    return res.status(400).send("Nenhum critério válido foi fornecido.");
+
+  const criterios = {
+    extensions:
+      extension && Array.isArray(extension)
+        ? extension.map((ext) => (ext.startsWith(".") ? ext : `.${ext}`))
+        : undefined,
+    creationDate,
+    modificationDate,
+    pattern: pattern,
+  };
+  const regExr = new RegExp("^[^\\W\\d_]+");
+  monitorarArquivos({ from, to, ignore, metodoUsado, criterios, regExr });
+  res
+    .status(200)
+    .send(
+      `📂 Monitoramento iniciado com sucesso usando o método "${metodoUsado}".`
+    );
 };
 
 // Testado
