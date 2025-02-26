@@ -2,7 +2,7 @@ const fs = require("fs");
 
 const LOG_FILE = "./app/json/filebot_recovery.json";
 
-const carregarLog = () => {
+const carregarJson = () => {
   if (fs.existsSync(LOG_FILE)) {
     try {
       return JSON.parse(fs.readFileSync(LOG_FILE, "utf-8"));
@@ -18,7 +18,7 @@ const salvarLog = (logData) => {
   fs.writeFileSync(LOG_FILE, JSON.stringify(logData, null, 2), "utf-8");
 };
 
-const registrarLog = ({
+const registrarJson = ({
   from,
   to,
   metodoUsado,
@@ -26,7 +26,7 @@ const registrarLog = ({
   arquivosMovidos,
   arquivosIgnorados,
 }) => {
-  const logData = carregarLog();
+  const logData = carregarJson();
 
   const dataAtual = new Date()
     .toISOString()
@@ -56,4 +56,4 @@ const registrarLog = ({
   salvarLog(logData);
 };
 
-module.exports = { carregarLog, registrarLog };
+module.exports = { carregarJson, registrarJson };

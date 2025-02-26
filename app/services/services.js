@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const chokidar = require("chokidar");
-const { registrarLog } = require("../utils/loggerUtils");
+const { registrarJson } = require("../utils/recoveryUtils");
 
 const arquivosMovidos = new Set();
 
@@ -205,7 +205,7 @@ const monitorarArquivos = async ({
     console.log("Arquivos ignorados:", arquivosIgnorados);
     console.log("Metodo:", metodoUsado);
 
-    await registrarLog({
+    await registrarJson({
       from,
       to,
       metodoUsado,

@@ -1,13 +1,13 @@
 const fs = require("fs");
 const path = require("path");
-const { carregarLog } = require("../utils/loggerUtils");
+const { carregarJson } = require("../utils/recoveryUtils");
 
 const LOG_FILE_PATH = path.join(__dirname, "../json/filebot_recovery.json");
 
 exports.reverterMovimentacao = (req, res) => {
   try {
     let { data, idMovimentacao } = req.body;
-    let json = carregarLog();
+    let json = carregarJson();
 
     if (!Object.keys(json).length) {
       return res
