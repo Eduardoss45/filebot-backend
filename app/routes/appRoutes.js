@@ -1,16 +1,11 @@
 const router = require("express").Router();
-const controllers = require("../controllers/controllers");
+const rotas = require("../controllers/rootController");
+const automatico = require("../controllers/organizacaoController");
+const reverter = require("../controllers/reversorController");
 
 module.exports = () => {
-  router.post("/pasta/mover", controllers.moverPasta); // Testado
-  router.post("/pasta/renomear", controllers.renomearPasta); // Testado
-  router.post("/pasta/deletar", controllers.deletarPasta); // Testado
-  router.post("/pasta/criar", controllers.criarPasta); // Testado
-  router.post("/arquivo/mover", controllers.moverArquivo); // Testado
-  router.post("/arquivo/renomear", controllers.renomearArquivo); // Testado
-  router.post("/arquivo/deletar", controllers.deletarArquivo); // Testado
-  router.post("/arquivo/criar", controllers.criarArquivo); // Testado
-  router.post("/automatico", controllers.organizacaoAutomatica); // Testado
-  router.get("/", controllers.root); // Testado
+  router.get("/", rotas.root);
+  router.post("/automatico", automatico.organizacaoAutomatica);
+  router.post("/reverter", reverter.reverterMovimentacao);
   return router;
 };

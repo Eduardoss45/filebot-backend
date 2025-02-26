@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const chokidar = require("chokidar");
+const { registrarLog } = require("../utils/loggerUtils");
 
 const arquivosMovidos = new Set();
 
@@ -149,7 +150,7 @@ const moverArquivo = async (filePath, to) => {
     });
 };
 
-const monitorarArquivos = ({
+const monitorarArquivos = async ({
   from,
   to,
   ignore,
@@ -159,33 +160,62 @@ const monitorarArquivos = ({
 }) => {
   const watcher = chokidar.watch(from, { persistent: true });
 
+  const arquivosMovidos = [];
+  const arquivosIgnorados = [];
+
+  const promessasMovimentacao = [];
+
   watcher.on("add", async (filePath) => {
     const fileName = path.basename(filePath);
     const fileDir = path.dirname(filePath);
 
     if (
-      ignore === "all" ||
-      (Array.isArray(ignore) &&
-        ignore.some((item) => fileDir.includes(item) || fileName === item))
+      Array.isArray(ignore) &&
+      ignore.some((item) => fileName === item || fileDir.endsWith(`/${item}`))
     ) {
+      arquivosIgnorados.push(fileName);
       console.log(`❌ Ignorado: ${filePath}`);
       return;
     }
 
-    try {
-      const stats = await fs.promises.stat(filePath);
-      if (deveMoverArquivo(filePath, stats, metodoUsado, criterios, regExr)) {
-        setTimeout(() => moverArquivo(filePath, to), 100);
+    const mover = async () => {
+      try {
+        const stats = await fs.promises.stat(filePath);
+        if (deveMoverArquivo(filePath, stats, metodoUsado, criterios, regExr)) {
+          await moverArquivo(filePath, to);
+          arquivosMovidos.push(fileName);
+        }
+      } catch (err) {
+        console.error(`🚨 Erro ao acessar ${fileName}:`, err);
       }
-    } catch (err) {
-      console.error(`🚨 Erro ao acessar ${fileName}:`, err);
-    }
+    };
+
+    promessasMovimentacao.push(mover());
   });
 
   watcher.on("error", (err) => console.error("🚨 Erro no monitoramento:", err));
-  console.log(
-    `📂 Monitorando "${from}" e movendo para "${to}" usando método "${metodoUsado}"`
-  );
+
+  watcher.on("ready", async () => {
+    console.log(
+      `📂 Monitorando "${from}" e movendo para "${to}" usando método "${metodoUsado}"`
+    );
+
+    await Promise.all(promessasMovimentacao);
+
+    console.log("Arquivos ignorados:", arquivosIgnorados);
+    console.log("Metodo:", metodoUsado);
+
+    await registrarLog({
+      from,
+      to,
+      metodoUsado,
+      criterios,
+      arquivosMovidos,
+      arquivosIgnorados,
+    });
+  });
+
+  return { arquivosMovidos, arquivosIgnorados };
 };
 
 module.exports = { definirMetodo, monitorarArquivos };
