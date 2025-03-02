@@ -3,9 +3,9 @@ const path = require("path");
 const crypto = require("crypto");
 const chokidar = require("chokidar");
 const { registrarJson } = require("../utils/recoveryUtils");
+const { logMessage } = require("../utils/loggerUtils");
 
 const arquivosMovidos = new Set();
-
 let arquivosRenomeados = [];
 
 const calcularHashArquivo = (filePath) => {
@@ -53,10 +53,13 @@ const extrairPadrao = (fileName) => {
 const verificarPadrao = (fileName, pattern, regExr) => {
   const basePattern = extrairPadrao(fileName);
   if (basePattern !== pattern) {
-    console.log("Padrão não corresponde ao prefixo do arquivo. Ignorando...");
+    logMessage(
+      "warn",
+      "Padrão não corresponde ao prefixo do arquivo. Ignorando..."
+    );
     return false;
   } else if (!(regExr instanceof RegExp)) {
-    console.error("🚨 RegExr inválido.");
+    logMessage("error", "🚨 RegExr inválido.");
     return false;
   }
   return regExr.test(basePattern);
@@ -94,12 +97,15 @@ async function verificarEExcluirDuplicata(filePath, destinoInicial) {
     ]);
 
     if (hashNovo && hashNovo === hashExistente) {
-      console.log(`🗑️ Arquivo duplicado encontrado! Excluindo ${filePath}...`);
+      logMessage(
+        "info",
+        `🗑️ Arquivo duplicado encontrado! Excluindo ${filePath}...`
+      );
       await fs.promises.unlink(filePath);
       return true;
     }
   } catch (err) {
-    console.error(`🚨 Erro ao comparar arquivos:`, err);
+    logMessage("error", `🚨 Erro ao comparar arquivos: ${err}`);
   }
   return false;
 }
@@ -110,7 +116,10 @@ const moverArquivo = async (filePath, to) => {
   const fileBaseName = path.basename(filePath, fileExt);
 
   if (arquivosMovidos.has(fileName)) {
-    console.log(`🔄 Ignorando ${fileName}, pois foi movido recentemente.`);
+    logMessage(
+      "info",
+      `🔄 Ignorando ${fileName}, pois foi movido recentemente.`
+    );
     return;
   }
 
@@ -142,18 +151,18 @@ const moverArquivo = async (filePath, to) => {
     count++;
   }
 
-  console.log(`🚀 Movendo ${fileName} para ${newPath}`);
+  logMessage("info", `🚀 Movendo ${fileName} para ${newPath}`);
 
   arquivosMovidos.add(fileName);
 
   fs.promises
     .rename(filePath, newPath)
     .then(() => {
-      console.log(`✅ ${fileName} movido para ${newPath}`);
+      logMessage("info", `✅ ${fileName} movido para ${newPath}`);
       setTimeout(() => arquivosMovidos.delete(fileName), 5000);
     })
     .catch((err) => {
-      console.error(`🚨 Erro ao mover ${fileName}:`, err);
+      logMessage("error", `🚨 Erro ao mover ${fileName}: ${err}`);
       arquivosMovidos.delete(fileName);
     });
 };
@@ -169,9 +178,7 @@ const monitorarArquivos = async ({
   const watcher = chokidar.watch(from, { persistent: true });
 
   const arquivosMovidos = [];
-
   const arquivosIgnorados = [];
-
   const promessasMovimentacao = [];
 
   watcher.on("add", async (filePath) => {
@@ -183,7 +190,7 @@ const monitorarArquivos = async ({
       ignore.some((item) => fileName === item || fileDir.endsWith(`/${item}`))
     ) {
       arquivosIgnorados.push(fileName);
-      console.log(`❌ Ignorado: ${filePath}`);
+      logMessage("info", `❌ Ignorado: ${filePath}`);
       return;
     }
 
@@ -195,17 +202,20 @@ const monitorarArquivos = async ({
           arquivosMovidos.push(fileName);
         }
       } catch (err) {
-        console.error(`🚨 Erro ao acessar ${fileName}:`, err);
+        logMessage("error", `🚨 Erro ao acessar ${fileName}: ${err}`);
       }
     };
 
     promessasMovimentacao.push(mover());
   });
 
-  watcher.on("error", (err) => console.error("🚨 Erro no monitoramento:", err));
+  watcher.on("error", (err) =>
+    logMessage("error", `🚨 Erro no monitoramento: ${err}`)
+  );
 
   watcher.on("ready", async () => {
-    console.log(
+    logMessage(
+      "info",
       `📂 Monitorando "${from}" e movendo para "${to}" usando método "${metodoUsado}"`
     );
 

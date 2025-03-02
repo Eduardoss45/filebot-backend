@@ -1,6 +1,7 @@
-const fs = require("fs");
+const fs = require("fs"); // substitua os logs e error por logMessage
 const path = require("path");
 const { carregarJson } = require("../utils/recoveryUtils");
+const { logMessage } = require("../utils/loggerUtils");
 
 const LOG_FILE_PATH = path.join(__dirname, "../json/filebot_recovery.json");
 
@@ -20,11 +21,9 @@ exports.reverterMovimentacao = (req, res) => {
     }
 
     if (!json[data] || !Object.keys(json[data]).length) {
-      return res
-        .status(404)
-        .json({
-          error: "Nenhuma movimentação encontrada para a data fornecida.",
-        });
+      return res.status(404).json({
+        error: "Nenhuma movimentação encontrada para a data fornecida.",
+      });
     }
 
     if (!idMovimentacao) {
@@ -36,7 +35,7 @@ exports.reverterMovimentacao = (req, res) => {
     }
 
     const movimentacao = json[data][idMovimentacao];
-    console.log(`🔄 Revertendo movimentação: ${idMovimentacao} do dia ${data}`);
+    logMessage(`🔄 Revertendo movimentação: ${idMovimentacao} do dia ${data}`);
 
     let error = false;
 
@@ -59,17 +58,21 @@ exports.reverterMovimentacao = (req, res) => {
       if (fs.existsSync(caminhoAtual)) {
         try {
           fs.renameSync(caminhoAtual, caminhoOriginal);
-          console.log(
+          logMessage(
             `✅ Arquivo restaurado: ${nomeRenomeado} → ${nomeOriginal}`
           );
         } catch (err) {
-          console.error(
-            `❌ Erro ao restaurar ${nomeRenomeado}: ${err.message}`
+          logMessage(
+            `❌ Erro ao restaurar ${nomeRenomeado}: ${err.message}`,
+            "error"
           );
           error = true;
         }
       } else {
-        console.warn(`⚠️ Arquivo não encontrado no destino: ${nomeRenomeado}`);
+        logMessage(
+          `⚠️ Arquivo não encontrado no destino: ${nomeRenomeado}`,
+          "warn"
+        );
       }
     });
 
@@ -80,7 +83,7 @@ exports.reverterMovimentacao = (req, res) => {
       }
 
       fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(json, null, 2), "utf-8");
-      console.log("✅ Movimentação revertida com sucesso!");
+      logMessage("✅ Movimentação revertida com sucesso!");
       return res
         .status(200)
         .json({ message: "Movimentação revertida com sucesso!" });
@@ -90,7 +93,7 @@ exports.reverterMovimentacao = (req, res) => {
       });
     }
   } catch (error) {
-    console.error(`❌ Erro na reversão: ${error.message}`);
+    logMessage(`❌ Erro na reversão: ${error.message}`, "error");
     return res.status(500).json({ error: "Erro ao reverter movimentação." });
   }
 };
