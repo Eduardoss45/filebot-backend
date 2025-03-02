@@ -25,6 +25,7 @@ const registrarJson = ({
   criterios = {},
   arquivosMovidos,
   arquivosIgnorados,
+  arquivosRenomeados,
 }) => {
   const logData = carregarJson();
 
@@ -51,6 +52,7 @@ const registrarJson = ({
     },
     ...(arquivosIgnorados.length > 0 && { filesIgnore: arquivosIgnorados }),
     filesNames: arquivosMovidos,
+    filesRenamed: arquivosRenomeados,
   };
 
   salvarLog(logData);

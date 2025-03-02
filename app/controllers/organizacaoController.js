@@ -16,6 +16,8 @@ exports.organizacaoAutomatica = (req, res) => {
 
   if (!fs.existsSync(to)) fs.mkdirSync(to, { recursive: true });
 
+  const regExr = new RegExp("^[^\\W\\d_]+");
+
   const criteriosRecebidos = {
     extension: extension?.length > 0,
     creationDate: !!creationDate,
@@ -56,8 +58,6 @@ exports.organizacaoAutomatica = (req, res) => {
     modificationDate,
     pattern,
   };
-
-  const regExr = new RegExp("^[^\\W\\d_]+");
 
   const { arquivosMovidos, arquivosIgnorados } = monitorarArquivos({
     from,

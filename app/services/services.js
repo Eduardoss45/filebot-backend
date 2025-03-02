@@ -6,6 +6,8 @@ const { registrarJson } = require("../utils/recoveryUtils");
 
 const arquivosMovidos = new Set();
 
+let arquivosRenomeados = [];
+
 const calcularHashArquivo = (filePath) => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash("sha256");
@@ -124,6 +126,7 @@ const moverArquivo = async (filePath, to) => {
   }
 
   let newPath = destinoInicial;
+  let newFileName = "";
   let count = 1;
   while (
     await fs.promises
@@ -132,10 +135,15 @@ const moverArquivo = async (filePath, to) => {
       .catch(() => false)
   ) {
     newPath = path.join(to, `${fileBaseName} (${count})${fileExt}`);
+    newFileName = `${fileBaseName} (${count})${fileExt}`;
+    arquivosRenomeados.push({
+      [fileBaseName + fileExt]: newFileName,
+    });
     count++;
   }
 
   console.log(`🚀 Movendo ${fileName} para ${newPath}`);
+
   arquivosMovidos.add(fileName);
 
   fs.promises
@@ -161,6 +169,7 @@ const monitorarArquivos = async ({
   const watcher = chokidar.watch(from, { persistent: true });
 
   const arquivosMovidos = [];
+
   const arquivosIgnorados = [];
 
   const promessasMovimentacao = [];
@@ -202,9 +211,6 @@ const monitorarArquivos = async ({
 
     await Promise.all(promessasMovimentacao);
 
-    console.log("Arquivos ignorados:", arquivosIgnorados);
-    console.log("Metodo:", metodoUsado);
-
     await registrarJson({
       from,
       to,
@@ -212,6 +218,7 @@ const monitorarArquivos = async ({
       criterios,
       arquivosMovidos,
       arquivosIgnorados,
+      arquivosRenomeados,
     });
   });
 
